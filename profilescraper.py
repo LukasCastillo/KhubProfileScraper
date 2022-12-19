@@ -5,12 +5,15 @@ from bs4 import BeautifulSoup
 # add your current cookie session here
 cookies = {'MoodleSession': '', 'MOODLEID1_': ''}
 
+# gets the html data of the user from their id
 def get_profile_html_from_id(id):
     return requests.get('https://khub.mc.pshs.edu.ph/user/profile.php?id=' + str(id) + '&showallcourses=1', cookies=cookies).text
 
 users = []
 
+# returns a user based on the id
 def get_user(id):
+    # object that holds the user
     user = {
         "id": id,
         "name": "",
@@ -21,11 +24,14 @@ def get_user(id):
         "city": "",
     }
     try:
+        # gets the html
         profile_html = get_profile_html_from_id(id)
         profile_soup = BeautifulSoup(profile_html, "html.parser")
         profile_div = profile_soup.find_all("div", class_="card-profile")[0]
+        # gets name
         try: user['name'] = profile_div.find_all("h3")[0].text
         except: pass
+        # gets pic link
         try: user['pic'] = profile_div.find_all("img")[0]['src']
         except: pass
         # get courses
@@ -38,20 +44,25 @@ def get_user(id):
         except: pass
 
         user_info_div = profile_div.find_all('div', class_='userinfo')[0]
+        # gets description
         try: user['desc'] = user_info_div.find_all('div', class_="userdescription")[0].contents[0].contents[0].text
         except: pass
         info_list = user_info_div.find_all('ul')[0]
+        # gets email
         try: user['email'] = info_list.find_all('dt', string="Email address:")[0].parent.find_all('a')[0].text
         except: pass
+        # gets city
         try: user['city'] = info_list.find_all('dt', string="City/town:")[0].parent.find_all('dd')[0].text
         except: pass
     except:
         pass
     return user
 
+
 def get_id(user):
     return user["id"]
 
+# write the results to a file
 def write_users_to_file():
     print("sorting list")
     users.sort(key=get_id)
@@ -68,6 +79,7 @@ running = True
 current_id = 0
 lock = threading.Lock()
 
+# main proc that runs get_user()
 def proc():
     global running
     global current_id
@@ -87,6 +99,7 @@ def proc():
             print("max reached!")
             running = False
 
+# threads to speedup stuff
 threads = [threading.Thread(target=proc) for _ in range(6)]
 for thread in threads:
     thread.start()
